@@ -14,12 +14,15 @@
 - 📄 **真实翻页**：`page` 参数直达任意页码
 - 🧭 **搜索语法**：`intitle:` `"短语"` `-排除` `OR` …
 - 🔗 结果含真实 URL（自动解码国际版跳转链接）、摘要、日期、来源域名
+- 🎭 自动模拟浏览器 TLS 指纹（`site:` 等高级语法需要）
 - ⚡ 内置 60s 结果缓存与自动重试
 
 ## 📦 安装
 
 ```bash
 pip install -r requirements.txt
+# 若需 site: 语法完整生效, 确保安装浏览器指纹库:
+pip install curl_cffi
 ```
 
 ## 🚀 快速开始
@@ -208,16 +211,21 @@ bs.set_cookies("@cookies.txt")          # cookies.txt 文件（Netscape 格式�
 
 | 语法 | 示例 | 状态 |
 |---|---|---|
-| `intitle:词` | `intitle:量子计算` | ✅ |
-| `"精确短语"` | `"large language model hallucination"` | ✅ |
+| `site:` | `site:zhihu.com python 教程` | ✅ 符合率 100% |
+| `intitle:词` | `intitle:量子计算` | ✅ 符合率 100% |
+| `inbody:词` | `inbody:碳中和 site:gov.cn` | ✅ 正文过滤真实生效 |
+| `"精确短语"` | `"large language model hallucination"` | ✅ 真精确匹配 |
 | `-词` 排除 | `苹果 -手机` | ✅ |
-| `OR` / `AND` | `CUDA OR ROCm 教程` | ✅ |
+| `OR` / `AND` / `NOT` | `CUDA OR ROCm 教程` | ✅ |
 | `language:en` | `quantum computing language:en` | ✅ |
-| `inbody:` / `contains:` | `报告 contains:pdf` | 🟡 尽力而为 |
-| `site:` | `site:zhihu.com python` | 🟡 服务端行为不稳定，建议返回后自行按 `source` 过滤 |
-| `filetype:` / `ext:` / `related:` / `feed:` | - | ❌ 忽略 |
+| `contains:` | `报告 contains:pdf` | 🟡 影响极弱 |
+| `filetype:` / `ext:` | - | ❌ cn 索引不支持 |
+| `feed:` | - | ❌ 忽略 |
+| `related:` | `related:python.org` | 🟡 返回相似站点(含自身) |
 
-> 带语法的查询建议主要使用第一页；翻页页码上部分语法可能被服务端忽略（客户端自动回退通道会尽力补齐）。
+> 以上矩阵在 `curl_cffi` 浏览器指纹会话下实测。**依赖说明**：高级语法要求"浏览器 TLS 指纹 + HVE 会话激活"，
+> 客户端已全自动处理；未安装 `curl_cffi` 时退回 requests 指纹，`site:` / `inbody:` 等高级语法会被服务端忽略。
+> 带语法的查询建议主要使用第一页；翻页页码上部分语法可能被服务端忽略（自动回退通道会尽力补齐）。
 
 ## ⚙️ 配置
 

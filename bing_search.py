@@ -29,6 +29,13 @@ from urllib.parse import quote, urlencode, urlparse
 
 import requests
 
+try:
+    from curl_cffi import requests as _creq  # 浏览器 TLS/HTTP2 指纹模拟(高级语法必需)
+    _HAS_CURL_CFFI = True
+except ImportError:
+    _creq = None
+    _HAS_CURL_CFFI = False
+
 DEFAULT_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:153.0) Gecko/20100101 Firefox/153.0"
 )
@@ -149,10 +156,16 @@ class BingSearch:
         self._mkt = mkt                      # None => engine 默认
         self._language = language            # Accept-Language
         self._bootstrap_done = auto_bootstrap is False  # 惰性
-        self.session = requests.Session()
+        if _HAS_CURL_CFFI:
+            # 浏览器指纹会话: 高级语法(site: 等)仅对浏览器 TLS/HTTP2 指纹的会话生效
+            self.session = _creq.Session(impersonate="firefox133")
+        else:
+            self.session = requests.Session()
+            self.session.headers.update(self._build_headers())
         if self.proxy:
             self.session.proxies = {"http": self.proxy, "https": self.proxy}
-        self.session.headers.update(self._build_headers())
+        if _HAS_CURL_CFFI:
+            self.session.headers.update(self._build_headers())
         if cookies:
             self.set_cookies(cookies)
 
