@@ -211,7 +211,7 @@ bs.set_cookies("@cookies.txt")          # cookies.txt 文件（Netscape 格式�
 
 | 语法 | 示例 | 状态 |
 |---|---|---|
-| `site:` | `site:zhihu.com python 教程` | ✅ 仅国内版（100% 符合）；国际版受 Akamai 反爬限制见下 |
+| `site:` | `site:zhihu.com python 教程` | 🟡 **可用窗口动态波动**（服务端行为）：生效时 100% 符合、失效时被忽略，真浏览器/脚本一致；建议始终用 `source` 过滤兜底 |
 | `intitle:词` | `intitle:量子计算` | ✅ 符合率 100% |
 | `inbody:词` | `inbody:碳中和 site:gov.cn` | ✅ 正文过滤真实生效 |
 | `"精确短语"` | `"large language model hallucination"` | ✅ 真精确匹配 |
@@ -224,9 +224,9 @@ bs.set_cookies("@cookies.txt")          # cookies.txt 文件（Netscape 格式�
 | `related:` | `related:python.org` | 🟡 返回相似站点(含自身) |
 
 > 以上矩阵在国内版 `cn.bing.com` + `curl_cffi` 浏览器指纹会话下实测。
-> **国际版（`engine=global`）的 `site:` 暂不可用**：www.bing.com 有 Akamai 反爬层（`ak_bmsc`/`bm_sv`），
-> 纯 HTTP 客户端（即使模拟浏览器 TLS 指纹）无传感器数据会被降级——同代理出口下真浏览器可用。
-> 国际版需要限定站点时，请返回结果后按 `source` 字段自行过滤，或改用 `engine=cn` + `ensearch=true`。**依赖说明**：高级语法要求"浏览器 TLS 指纹 + HVE 会话激活"，
+> `site:` 的可用性由服务端状态决定（多轮真浏览器+纯 HTTP 同刻对照实证）：同一客户端同一 cookie，
+> 生效窗口内 10/10 命中健康池，窗口外任何客户端（含真浏览器）都被忽略甚至返回乱序结果；
+> 国际版（www）在该状态下还会叠加 Akamai 反爬（`ak_bmsc`/`bm_sv`）。**依赖 `site:` 的业务请务必加 `source` 过滤兜底**。**依赖说明**：高级语法要求"浏览器 TLS 指纹 + HVE 会话激活"，
 > 客户端已全自动处理；未安装 `curl_cffi` 时退回 requests 指纹，`site:` / `inbody:` 等高级语法会被服务端忽略。
 > 带语法的查询建议主要使用第一页；翻页页码上部分语法可能被服务端忽略（自动回退通道会尽力补齐）。
 
