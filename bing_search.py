@@ -41,6 +41,12 @@ DEFAULT_UA = (
 )
 # UA 家族实测决定翻页能力: Firefox UA 的匿名会话走传统 snrjson XHR 翻页(可用);
 # Chrome UA 匿名会话被服务端降级(first 参数永远返回第一页)。故默认 Firefox UA。
+# 国际版(www.bing.com)的语法门需要 Edge 全家桶: Edge UA + sec-ch-ua 三件套 + sec-ms-gec
+# (v2 token, 与 Edge 版本绑定, 从真实 Edge 复制; 时效宽松数小时以上)。三者必须配对。
+EDGE_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+)
 
 
 
@@ -142,6 +148,7 @@ class BingSearch:
         auto_bootstrap: bool = True,
         verify_proxy: bool = True,
         cookies: Optional[str] = None,
+        gec_token: Optional[str] = None,
     ):
         self.engine = (engine or self.CN).lower()
         if self.engine not in (self.CN, self.GLOBAL):
@@ -154,6 +161,7 @@ class BingSearch:
         if not self.proxy and self.engine == self.GLOBAL and verify_proxy:
             pass  # 允许海外机器直连, 由 _bootstrap 时自然检测
         self._mkt = mkt                      # None => engine 默认
+        self._gec_token = gec_token or os.environ.get("BING_GEC_TOKEN")  # 国际版语法门
         self._language = language            # Accept-Language
         self._bootstrap_done = auto_bootstrap is False  # 惰性
         if _HAS_CURL_CFFI:
@@ -230,6 +238,18 @@ class BingSearch:
             "Sec-Fetch-Site": "none",
             "Sec-Fetch-User": "?1",
         }
+        # 国际版(www.bing.com)有 Akamai/语法门: sec-ch-ua 三件套 + sec-ms-gec 必需,
+        # 缺任一组高级语法(site: 等)会被服务端静默丢弃。token 时效宽松(数小时+)。
+        if self.engine == self.GLOBAL:
+            # Edge client hints 必须与 Edge UA 配对(服务端校验一致性)
+            h["User-Agent"] = EDGE_UA
+            h["sec-ch-ua"] = '"Microsoft Edge";v="155", "Chromium";v="155", "Not(A:Brand";v="24"'
+            h["sec-ch-ua-mobile"] = "?0"
+            h["sec-ch-ua-platform"] = '"Windows"'
+            gec = os.environ.get("BING_GEC_TOKEN") or self._gec_token
+            if gec:
+                h["sec-ms-gec"] = gec
+                h["sec-ms-gec-version"] = "2-155.0.4283.62"
         return h
 
     # -------------------------------------------------- session warmup
